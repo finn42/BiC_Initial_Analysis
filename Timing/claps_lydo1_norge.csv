@@ -1,0 +1,27 @@
+Event,Minutes,Seconds,Decimals
+"Tunning", 2,18,30
+"Tap Synch", 3,20,20
+"Saeverud",4,4,62
+"Applause      ",7,59,49
+"MC1",8,14,19
+"Reich", 15,23,59
+"Applause      ", 17,10,40
+"MC2", 17,22,56
+"Arban", 19,42,20
+"Applause      ", 28,26,20
+"MC3", 28,49,59
+"Grieg", 30,2,20
+"Applause      ", 35,24,52
+"MC4", 35,41,26
+"Tsjajkovskij", 39,58,26
+"Applause      ", 42,53,37
+"MC5", 43,4,53
+"Christophersen", 44,17,36
+"Applause      ", 50,30,69
+"MC6", 50,44,22
+"Vivaldi", 55,47,7
+"Applause      ", 59,44,73
+"MC7", 60,10,54
+"Strauss", 63,48,46
+"Applause      ", 65,49,45
+"End", 66,13,50
