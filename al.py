@@ -18,7 +18,7 @@ import matplotlib.pyplot as plt
 import seaborn as sns
 # import heartpy as hp
 
-from scipy.signal import butter,filtfilt
+from scipy.signal import butter, filtfilt, argrelextrema
 from scipy import interpolate
 from scipy.interpolate import interp1d
 
@@ -116,3 +116,101 @@ def tap_cue_align(cue,sig_ex,sig_ID):
     }
     return shift_stats
     
+def min_align(ACC,cue,prelim_synch_time,max_offs):
+    # sf infered from cue
+    sampleshift_s = cue['sTime'].diff().median()
+    sf = np.round(1/sampleshift_s) 
+    t_range = [cue['sTime'].iloc[0],cue['sTime'].iloc[-1]]
+    c_type = cue.columns[1]
+    
+    xrange = [pd.to_timedelta(t_range[0],unit = 's') + prelim_synch_time,pd.to_timedelta(t_range[1],unit = 's') + prelim_synch_time]
+    sig_sTime = cue['sTime'].values #np.linspace(t_range[0],t_range[1],sf*(t_range[1]-t_range[0]),endpoint=False)
+    
+    # add preliminary time stamples to cue
+    cue.loc[:,'dTime'] = pd.to_timedelta(sig_sTime,unit='s')+prelim_synch_time
+    
+    # ACC signal excerpt at correct sample rate
+    X = ACC.loc[ACC['dev_dTime']<xrange[1],:].copy()
+    X = X.loc[X['dev_dTime']>=xrange[0],:].copy()
+    sig_t = (X['dev_dTime'].dt.tz_localize(None) - prelim_synch_time.tz_localize(None)).dt.total_seconds()
+    sig_v = X['signal']
+    f = interpolate.interp1d(sig_t,sig_v,fill_value='extrapolate')
+    new_sig = f(sig_sTime)
+    signal = pd.DataFrame()
+    signal.loc[:,'signal'] = new_sig
+    signal.loc[signal['signal'].isna(),'signal'] = 0
+    # scale signals a little 
+    M = signal['signal'].quantile(0.998)
+    signal.loc[:,'signal']  = signal['signal']/M
+    signal.loc[signal['signal']>1,'signal'] = 1
+    signal.loc[signal['signal']<0,'signal'] = 0
+    signal.loc[:,'sTime'] = sig_sTime
+    signal.loc[:,'dev_dTime'] = pd.to_timedelta(sig_sTime,unit='s')+prelim_synch_time
+
+    length = np.min([len(signal),len(cue)]) # they should match, but just in case
+    
+    fig = plt.figure(figsize=(15,6))
+    ax1 = plt.subplot(311)
+    cue.plot.line(x='sTime',y=c_type,ax=ax1)
+    signal.plot(x='sTime',y='signal',label='ACC',ax=ax1,)
+    ax1.set_title('ACC synch alignment')
+    ax1.set_ylabel('Unaligned')
+    ax1.legend()
+    #plt.xlim(cue_range)
+
+    ax2 = plt.subplot(312)
+    CCC = ax2.xcorr(cue[c_type].iloc[:length], signal['signal'].iloc[:length], usevlines=True, maxlags=int(max_offs*sf), normed=True, lw=3)
+    ax2.grid(True)
+    ax2.set_xticklabels('')
+    cue.loc[:,'dev_dTime'] = cue['dTime'] - pd.to_timedelta(sampleshift_s*CCC[0][np.argmax(CCC[1])],unit='s')
+
+    ax1 = plt.subplot(313)
+    cue.plot.line(x='dev_dTime',y=c_type,ax=ax1)
+    signal.plot(x='dev_dTime',y='signal',label='ACC',ax=ax1,)
+    #plt.xlim(cue_range)
+    ax1.grid(True)
+    ax1.set_title('shift '+ str(np.round(sampleshift_s*CCC[0][np.argmax(CCC[1])],3))+ ' s')
+    ax1.set_ylabel('Aligned')
+    #plt.saveas('')
+    plt.show()
+
+    cue_time = cue.loc[find_nearest_idx(cue['sTime'], 0),'dev_dTime']
+    C_results = {'best': cue_time,'CCC':CCC,'cue':cue,'signal':signal}
+    return C_results
+
+def test_shift(Res,dts):
+    alt_cue = Res['cue'].copy()
+    c_type = alt_cue.columns[1]
+    fig = plt.figure(figsize=(15,5))
+    ax1 = plt.subplot(211)
+    alt_cue.plot.line(x='sTime',y=c_type,ax=ax1)
+    Res['signal'].plot(x='sTime',y='signal',label='ACC',ax=ax1,)
+    ax1.set_ylabel('Unaligned')
+    ax1.legend()
+    alt_cue.loc[:,'dev_dTime'] =  Res['cue']['dTime'] - pd.to_timedelta(dts,unit='s')
+    
+    cue_time = alt_cue.loc[find_nearest_idx(alt_cue['sTime'], 0),'dev_dTime']
+    dt_sh = pd.to_timedelta(7,unit='s')
+
+    ax1 = plt.subplot(212)
+    alt_cue.plot.line(x='dev_dTime',y=c_type,ax=ax1)
+    Res['signal'].plot(x='dev_dTime',y='signal',label='ACC',ax=ax1,)
+    ax1.set_xlim([cue_time-dt_sh/2,cue_time+dt_sh*1.5])
+    ax1.grid(True)
+    ax1.set_title('shift '+ str(dts)+ ' s')
+    plt.show()
+    
+    return cue_time
+
+def alt_xc_peaks(Res,ccthresh):
+    CCC = Res['CCC']
+    cue = Res['cue']
+    mid_off = int((len(CCC[0])-1)/2)
+    sf = np.round(1/cue['sTime'].diff().median())
+
+    V =np.clip(CCC[1], ccthresh, 1)
+    pks = pd.DataFrame()
+    pks['ind'] = argrelextrema(V, np.greater)[0]
+    pks['corr']= V[argrelextrema(V, np.greater)]
+    pks['shift s'] = (pks['ind']-mid_off)/sf
+    return pks
