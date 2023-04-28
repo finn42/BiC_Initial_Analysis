@@ -75,6 +75,21 @@ def data_dets(eq_file_loc,sep): #rec_start = V['DateTime'].iloc[0]
         Session = int(f[3][6:8])
     fileSize = os.path.getsize(eq_file_loc)
     
+    eq_data_loc = sep.join(filings[:-1])
+    M = matched_files(eq_file_loc,eq_data_loc,sep)
+    mfiles = {'DATA':'','RESP':'','RR':'','ACC':'','ECG':''}
+    for m in M:
+        if 'DATA' in m:
+            mfiles['DATA'] = m
+        if 'RESPACC' in m:
+            mfiles['RESP'] = m
+        if 'RR' in m:
+            mfiles['RR'] = m
+        if 'FASTACC' in m:
+            mfiles['ACC'] = m       
+        if 'ECG' in m:
+            mfiles['ECG'] = m 
+            
     V = pd.read_csv(eq_file_loc,skipinitialspace=True)
     if len(V)==0:
         File_dets={'Signal':Signal, #f[-2].split('_')[-1],
@@ -86,7 +101,12 @@ def data_dets(eq_file_loc,sep): #rec_start = V['DateTime'].iloc[0]
            'FileType':'csv',
            'FileSize': fileSize,
            'RecStart':pd.to_datetime('2020-02-02 02:02:00.00+0000'), # fake start
-           'FullLoc':eq_file_loc}
+           'FullLoc':eq_file_loc,
+            'DATAloc':mfiles['DATA'],
+            'ACCloc': mfiles['ACC'],
+            'RESPloc':mfiles['RESP'],
+            'RRloc': mfiles['RR'],
+            'ECGloc':mfiles['ECG']}
         return File_dets
     
     else:
@@ -117,6 +137,11 @@ def data_dets(eq_file_loc,sep): #rec_start = V['DateTime'].iloc[0]
            'BatteryEnd':Batt_end,
            'BatteryChange(mV)':Batt_spend,
            'FullLoc':eq_file_loc,
+            'DATAloc':mfiles['DATA'],
+            'ACCloc': mfiles['ACC'],
+            'RESPloc':mfiles['RESP'],
+            'RRloc': mfiles['RR'],
+            'ECGloc':mfiles['ECG'],
            'SubjectNames': DevNames}
         File_dets.update(a) # dic0.update(dic1)
         return File_dets
