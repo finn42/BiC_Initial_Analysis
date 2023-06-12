@@ -1,0 +1,107 @@
+Notes on converting Movesense recordings
+
+In the set up for stavangar lydo 2023, ECG was set to record single lead at 500 hz, IMU (9 dimensions) at 210 Hz.
+
+These sensors were used to follow two participants, PC708 (Musician) and PC706 (MC). At the time of working out these data, there is one device's data missing. Notes say there was a device 576 used by PC706 on Feb 18th, however the data files are not available, and I am not sure this devID is correct. 
+
+There is also two recordings from PC708 (585, 545) from before the dress rehearsal (our first synch point). These are not being treated for analysis. 
+
+Getting the logged data off of the Movesense devices was very difficult. Download was slow, we had to change from exporting jsons to exporting raw data formant and then converting on a PC, and the extraction system didn't always work. Movesense did provide technical support, but it was still weeks to resolve. 
+
+Extracting the data. 
+
+The Json files do not give timestamps relative to an outside clock. The time of recording is only specified through the timestamp in the filename, which gives the time at which the file STOPPED recording sensor values. The timestamps insided the file (after extraction to json) is one stamp per pack of values (4 or 16 or whatever) in milliseconds since some unspecified time. To assign timestamps, interpolate values per packaged sample and substract time to end from filename time. This is only good to the seconds, no explicit milliseconds.
+
+The file name time is also in the mobile phones local time zone. So plan to convert if the values need to be in utc.
+
+pythong code reference mvss.py converts the datalogger output jsons into csv files for ECG and IMU9. The IBIs are then extracted from the ECG data using heartpy after it has been trimmed to the signal interval. 
+
+
+Signal intervals
+
+ECG-PC706-577-230215105831.csv
+1674144
+[492.0, 3348.288, 246000, 1674144]
+[Timestamp('2023-02-15 10:58:31.276000+0000', tz='UTC'), Timestamp('2023-02-15 11:54:20+0000', tz='UTC')]
+[Timestamp('2023-02-15 11:06:43.276000+0000', tz='UTC'), Timestamp('2023-02-15 11:54:20+0000', tz='UTC')]
+
+ECG-PC706-587-230216074249.csv # leaves stage early or cut early?
+2531072
+[800.0, 5062.144, 400000, 2531072]
+[Timestamp('2023-02-16 07:42:49.178000+0000', tz='UTC'), Timestamp('2023-02-16 09:07:12+0000', tz='UTC')]
+[Timestamp('2023-02-16 07:56:09.178000+0000', tz='UTC'), Timestamp('2023-02-16 09:07:12+0000', tz='UTC')]
+
+ECG-PC708-596-230216075246.csv # leaves stage early?
+2489632
+[320.0, 4979.264, 160000, 2489632]
+[Timestamp('2023-02-16 07:52:46.050000+0000', tz='UTC'), Timestamp('2023-02-16 09:15:46+0000', tz='UTC')]
+[Timestamp('2023-02-16 07:58:06.050000+0000', tz='UTC'), Timestamp('2023-02-16 09:15:46+0000', tz='UTC')]
+
+ECG-PC708-596-230216093335.csv # leaves stage early?
+2420416
+[8.0, 4840.832, 4000, 2420416]
+[Timestamp('2023-02-16 09:33:35.215000+0000', tz='UTC'), Timestamp('2023-02-16 10:54:28+0000', tz='UTC')]
+[Timestamp('2023-02-16 09:33:43.215000+0000', tz='UTC'), Timestamp('2023-02-16 10:54:28+0000', tz='UTC')]
+
+ECG-PC708-620-230217074533.csv # leaves stage early ?
+1651664
+[260.0, 3303.328, 130000, 1651664]
+[Timestamp('2023-02-17 07:45:33.289000+0000', tz='UTC'), Timestamp('2023-02-17 08:40:37+0000', tz='UTC')]
+[Timestamp('2023-02-17 07:49:53.289000+0000', tz='UTC'), Timestamp('2023-02-17 08:40:37+0000', tz='UTC')]
+
+
+ECG-PC706-537-230217075913.csv # this is both c3 and c4
+9507024
+[520.0, 12200.0, 260000, 6100000]
+[Timestamp('2023-02-17 07:59:13.462000+0000', tz='UTC'), Timestamp('2023-02-17 13:16:18+0000', tz='UTC')]
+[Timestamp('2023-02-17 08:07:53.462000+0000', tz='UTC'), Timestamp('2023-02-17 11:22:35.626000+0000', tz='UTC')]
+
+
+ECG-PC708-620-230217092559.csv # leaves stage early?
+2687792
+[4.0, 5375.584, 2000, 2687792]
+[Timestamp('2023-02-17 09:25:59.619000+0000', tz='UTC'), Timestamp('2023-02-17 10:55:48+0000', tz='UTC')]
+[Timestamp('2023-02-17 09:26:03.619000+0000', tz='UTC'), Timestamp('2023-02-17 10:55:48+0000', tz='UTC')]
+
+
+ECG-PC708-510-230218141121.csv # leaves stage early?
+2088352
+[330.0, 4176.704, 165000, 2088352]
+[Timestamp('2023-02-18 14:11:21.080000+0000', tz='UTC'), Timestamp('2023-02-18 15:20:58+0000', tz='UTC')]
+[Timestamp('2023-02-18 14:16:51.080000+0000', tz='UTC'), Timestamp('2023-02-18 15:20:58+0000', tz='UTC')]
+
+**** Timing quality *****
+
+While many of these recordings lack reliable cues for alignment checking, the few with existing patterns (PC708, Clapping music) are off by ~ 10 seconds. This suggests that the timing reconstruction from datafile names actually works. 
+
+['PC706', 'RD', 'RD_Reic', 0, Timestamp('2023-02-15 11:16:50.919000+0000', tz='UTC'), Timestamp('2023-02-15 11:05:36.897000+0000', tz='UTC')]
+
+['PC706', 'C1', 'C1_Reic', 0, Timestamp('2023-02-16 08:45:22.246000+0000', tz='UTC'), Timestamp('2023-02-16 08:33:18.524000+0000', tz='UTC')]
+
+['PC708', 'C1', 'C1_Reic', -3.39, Timestamp('2023-02-16 08:45:22.246000+0000', tz='UTC'), Timestamp('2023-02-16 08:33:18.524000+0000', tz='UTC')]
+
+['PC708', 'C2', 'C2_Reic', -4.49, Timestamp('2023-02-16 10:27:10.927000+0000', tz='UTC'), Timestamp('2023-02-16 10:16:22.697000+0000', tz='UTC')]
+
+['PC708', 'C3', 'C3_Reic', 5.54, Timestamp('2023-02-17 08:40:31.007000+0000', tz='UTC'), Timestamp('2023-02-17 08:30:51.841000+0000', tz='UTC')]
+
+['PC706', 'C3', 'C3_Synch', -3.97, Timestamp('2023-02-17 08:30:51.841000+0000', tz='UTC'), Timestamp('2023-02-17 08:30:51.841000+0000', tz='UTC')]
+
+['PC706', 'C4', 'C4_Synch', -3.19, Timestamp('2023-02-17 10:16:26.888000+0000', tz='UTC'), Timestamp('2023-02-17 10:16:26.888000+0000', tz='UTC')]
+
+['PC708', 'C4', 'C4_Reic', -3.12, Timestamp('2023-02-17 10:27:20.769000+0000', tz='UTC'), Timestamp('2023-02-17 10:16:26.888000+0000', tz='UTC')]
+
+['PC708', 'C5', 'C5_Synch', 0, Timestamp('2023-02-18 15:10:29.583000+0000', tz='UTC'), Timestamp('2023-02-18 15:10:29.583000+0000', tz='UTC')]
+
+
+
+
+
+
+This result is very surprising as many of the recordings appear to stop early, well before the belts were removed and returned after the performance. This spontaneous early stop is not expected (nor desirable), however, the fact that these stops are not resulting in massive confusion re timestamps is amazing, all things considered. 
+
+*** Duration of recordings ***
+
+Many of the recordings appear to stop early relative to the time we expect them to. While the tapping cues are missing from these files, the heart rate patterns match the activity expected for these performers, up to some seconds. The MC's heart rate goes up between pieces, the musicians goes up when music pieces start (that included their instrument). As such, I am confident that the timestamps are mostly correct, and the Movesense devices spontaneously stopped recording on their own, without direction from the datalogger app, for reasons that are currently unclear.
+
+The data loss from spontaneous turning off is substantial, sometimes missing most of the concert. 
+
