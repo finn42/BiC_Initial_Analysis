@@ -52,7 +52,7 @@ def respnormed(sig,filtering_range = [1],scaling=0):
               as a Pandas Dataframe or Series with timestamps as floats in index
         filtering_range - cutoff(s) for low (1) or band (2) pass filtering of sig
               Default is lowpass [1] Hz second order zero phase butterworth
-              if the baseline is noise, a bandpass of [0.05,1] is not bad.
+              if the baseline is noisy, a bandpass of [0.05,1] is not bad.
         scaling - optional argument for setting the scaling constant.
               If blank, the function scales by median inspiration velocity 
               If scaling=1, the function presevers the input signal unites (but sets average to 0)
